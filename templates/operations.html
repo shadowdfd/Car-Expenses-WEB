@@ -1,0 +1,480 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<!-- CSV Export/Import buttons -->
+<div class="mb-3">
+  <button type="button" class="btn btn-primary btn-sm me-4" data-bs-toggle="modal" data-bs-target="#addRecordModal" title="Добавить запись"><img src="{{ url_for('static', filename='icons/add.png') }}" alt="Добавить" style="width: 16px; height: 16px;"> Добавить</button>
+  <a class="btn btn-primary btn-sm me-1" href="{{ url_for('export_table', table_name=entity) }}" title="Экспорт в CSV"><img src="{{ url_for('static', filename='icons/export.png') }}" alt="Экспорт" style="width: 16px; height: 16px;"> Экспорт</a>
+  <a class="btn btn-secondary btn-sm me-1" href="{{ url_for('export_template', table_name=entity) }}" title="Скачать шаблон для импорта"><img src="{{ url_for('static', filename='icons/export.png') }}" alt="Шаблон" style="width: 16px; height: 16px;"> Шаблон</a>
+  <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#importModal" title="Импорт из CSV"><img src="{{ url_for('static', filename='icons/import.png') }}" alt="Импорт" style="width: 16px; height: 16px;"> Импорт</button>
+</div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('import_table', table_name=entity) }}" enctype="multipart/form-data">
+        <div class="modal-header">
+          <h5 class="modal-title">Импорт из CSV</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Выберите CSV файл</label>
+            <input type="file" name="file" class="form-control" accept=".csv" required>
+          </div>
+          <div class="alert alert-info">
+            <small>
+              <strong>Формат:</strong> CSV с разделителем ";" и кодировкой UTF-8 BOM.<br>
+              Используйте кнопку "Шаблон" для получения правильного формата.
+            </small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger btn-sm me-1" data-bs-dismiss="modal">Отмена</button>
+          <button type="submit" class="btn btn-primary btn-sm me-1">Импортировать</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Add Modal -->
+<div class="modal fade" id="addRecordModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg"><div class="modal-content">
+  <form method="post" action="{{ action }}">
+    <div class="modal-header"><h5 class="modal-title">Добавить: {{ title }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button></div>
+    <div class="modal-body row g-3">
+  {% if 'car' in form_fields %}
+  <div class="col-12"><select name="car_id" class="form-select" required><option value="">Автомобиль</option>{% for car in cars %}<option value="{{ car.id }}" {% if (form_record and form_record.car_id == car.id) or (not form_record and selected_car_id == car.id) %}selected{% endif %}>{{ car.display_name }}</option>{% endfor %}</select></div>
+  {% endif %}
+  {% if 'expense_type' in form_fields %}
+  <div class="col-12"><select name="expense_type_id" class="form-select" required><option value="">Тип расхода</option>{% for item in expense_types %}<option value="{{ item.id }}">{{ item.name }}</option>{% endfor %}</select></div>
+  {% endif %}
+  {% if 'part' in form_fields %}
+  <div class="col-12"><select name="part_id" class="form-select" required><option value="">Запчасть</option>{% for item in parts %}<option value="{{ item.id }}" {% if form_record and form_record.part_id == item.id %}selected{% endif %}>{{ item.display_name }}</option>{% endfor %}</select></div>
+  {% endif %}
+  {% if 'part' in form_fields %}
+  <div class="col-12"><select name="service_history_id" class="form-select"><option value="">Использование в ТО не выбрано</option>{% for history in service_histories %}<option value="{{ history.id }}" {% if form_record and form_record.service_history_id == history.id %}selected{% endif %}>{{ history.display_name }}</option>{% endfor %}</select></div>
+  {% endif %}
+  {% if 'sto' in form_fields %}
+  <div class="col-12"><select name="sto_id" class="form-select"><option value="">СТО</option>{% for item in services %}<option value="{{ item.id }}">{{ item.name }}</option>{% endfor %}</select></div>
+  {% endif %}
+  {% if 'amount' in form_fields %}<div class="col-12"><input name="amount" type="number" step="0.01" class="form-control" placeholder="Сумма" required></div>{% endif %}
+  {% if 'liters' in form_fields %}<div class="col-12"><input name="liters" type="number" step="0.01" class="form-control fuel-liters" placeholder="Литры" required></div>{% endif %}
+  {% if 'price' in form_fields %}<div class="col-12"><input name="price" type="number" step="0.01" class="form-control {% if title == 'Топливо' %}fuel-price{% endif %}" placeholder="Цена" value="{{ form_record.price if form_record else '' }}" required></div>{% endif %}
+  {% if 'quantity' in form_fields %}<div class="col-12"><input name="quantity" type="number" step="0.01" class="form-control" placeholder="Количество" value="{{ form_record.quantity if form_record else '' }}" required></div>{% endif %}
+  {% if 'mileage' in form_fields %}<div class="col-12"><input name="mileage" type="number" class="form-control" placeholder="Пробег" required></div>{% endif %}
+  {% if 'expense_type' in form_fields %}<div class="col-12"><input name="expense_date" type="date" class="form-control" required></div>{% elif 'fuel_date' in form_fields %}<div class="col-12"><input name="fuel_date" type="date" class="form-control" required></div>{% elif 'purchase_date' in form_fields %}<div class="col-12"><input name="purchase_date" type="date" class="form-control" value="{{ form_record.purchase_date if form_record else '' }}" required></div>{% elif 'service_date' in form_fields %}<div class="col-12"><input name="service_date" type="date" class="form-control" required></div>{% endif %}
+  {% if 'comment' in form_fields %}<div class="col-12"><input name="comment" class="form-control" placeholder="Комментарий"></div>{% endif %}
+  {% if 'description' in form_fields %}<div class="col-12"><textarea name="description" class="form-control" rows="4" placeholder="Описание"></textarea></div>{% endif %}
+  {% if title == 'История ТО' %}<div class="col-12"><label class="form-label">Стандартные работы</label>{% for task in tasks %}<div class="form-check"><input class="form-check-input" type="checkbox" name="service_task_ids" value="{{ task.id }}" id="addTask{{ task.id }}"><label class="form-check-label" for="addTask{{ task.id }}">{{ task.abbr }} - {{ task.name }}</label></div>{% endfor %}</div>{% endif %}
+  {% if title == 'Топливо' %}<div class="col-12"><input type="text" class="form-control fuel-total" placeholder="Сумма" value="0.00" readonly></div>{% endif %}
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-danger btn-sm me-1" data-bs-dismiss="modal">Отмена</button>
+      <button class="btn btn-primary btn-sm" title="Добавить запись"><img src="{{ url_for('static', filename='icons/add.png') }}" alt="Добавить" style="width: 16px; height: 16px;"> Добавить</button>
+    </div>
+  </form>
+  </div></div>
+</div>
+
+<!-- Filters -->
+<div class="mb-3"><input id="tableFilter" type="search" class="form-control" placeholder="Фильтр по записям"></div>
+{% if title == 'История ТО' %}
+<div class="row g-2 mb-3"><div class="col-md-6"><select id="serviceFilter" class="form-select"><option value="">Все СТО</option>{% for service in services %}<option value="{{ service.id }}">{{ service.name }}</option>{% endfor %}</select></div><div class="col-md-6"><select id="taskFilter" class="form-select"><option value="">Все стандартные работы</option>{% for task in tasks %}<option value="{{ task.id }}">{{ task.abbr }} - {{ task.name }}</option>{% endfor %}</select></div></div>
+{% endif %}
+{% if title == 'Покупки запчастей' %}
+<div class="mb-3"><select id="purchaseServiceFilter" class="form-select"><option value="">Все варианты использования в ТО</option><option value="none">Без использования в ТО</option>{% for history in service_histories %}<option value="{{ history.id }}">{{ history.display_name }}</option>{% endfor %}</select></div>
+{% endif %}
+
+<!-- Main Table -->
+<div class="table-responsive"><table id="recordsTable" class="table table-striped table-hover">
+  <thead><tr>
+    {% if title == 'Расходы' %}
+      <th style="width: 15%;" class="text-center">Автомобиль</th>
+      <th style="width: 15%;" class="text-center">Тип</th>
+      <th style="width: 15%;" class="text-center">Сумма</th>
+      <th style="width: 15%;" class="text-center">Дата</th>
+      <th style="width: 30%;" class="text-center">Комментарий</th>
+    {% elif title == 'Топливо' %}
+      <th style="width: 30%;" class="text-center">Автомобиль</th>
+      <th style="width: 15%;" class="text-center">Литры</th>
+      <th style="width: 15%;" class="text-center">Цена</th>
+      <th style="width: 15%;" class="text-center">Дата</th>
+      <th style="width: 15%;" class="text-center">Сумма</th>
+    {% elif title == 'Покупки запчастей' %}
+      <th style="width: 15%;" class="text-center">Автомобиль</th>
+      <th style="width: 30%;" class="text-center">Запчасть</th>
+      <th style="width: 8%;" class="text-center">Дата</th>
+      <th style="width: 5%;" class="text-center">Коли- чество</th>
+      <th style="width: 8%;" class="text-center">Цена</th>
+      <th style="width: 8%;" class="text-center">Сумма</th>
+      <th style="width: 16%;" class="text-center">Использование в ТО</th>
+    {% else %}
+      <th style="width: 15%;" class="text-center">Автомобиль</th>
+      <th style="width: 10%;" class="text-center">Дата</th>
+      <th style="width: 10%;" class="text-center">Пробег</th>
+      <th style="width: 10%;" class="text-center">СТО</th>
+      <th style="width: 15%;" class="text-center">Стандартные работы</th>
+      <th style="width: 20%;" class="text-center">Описание</th>
+      <th style="width: 10%;" class="text-center">Стоимость работ</th>
+    {% endif %}
+      <th style="width: 10%;"></th>
+  </tr></thead><tbody>
+
+    <!-- Main Table data-->
+{% for row in records %}
+<tr{% if title == 'Покупки запчастей' %} data-amount="{{ row[0].quantity * row[0].price }}" data-service-history="{{ row[0].service_history_id or '' }}"{% elif title == 'Топливо' %} data-amount="{{ (row[0].liters or 0) * (row[0].price or 0) }}"{% elif title == 'История ТО' %} data-amount="{{ row[0].amount }}" data-service="{{ row[0].sto_id or '' }}" data-tasks="{{ row[0].task_links|map(attribute='service_task_id')|join(',') }}" onclick="selectServiceHistory({{ row[0].id }})" style="cursor: pointer;"{% endif %}{% if title == 'История ТО' %} id="history-{{ row[0].id }}"{% endif %}>
+  {% if title == 'Расходы' %}<td>{{ row[1].display_name }}</td><td>{{ row[2].name }}</td><td class="text-end">{{ row[0].amount }}</td><td class="text-center">{{ row[0].expense_date }}</td><td>{{ row[0].comment or '' }}</td><td><button type="button" class="btn btn-sm btn-secondary me-1" data-bs-toggle="modal" data-bs-target="#editExpense{{ row[0].id }}" title="Редактировать"><img src="{{ url_for('static', filename='icons/edit.png') }}" alt="Редактировать" style="width: 16px; height: 16px;"></button><a class="btn btn-sm btn-danger" href="{{ url_for('delete_record', entity='expense', record_id=row[0].id) }}" title="Удалить"><img src="{{ url_for('static', filename='icons/delete.png') }}" alt="Удалить" style="width: 16px; height: 16px;"></a></td>
+  {% elif title == 'Топливо' %}<td>{{ row[1].display_name }}</td><td class="text-center">{{ row[0].liters }}</td><td class="text-end">{{ '%.2f'|format(row[0].price) }}</td><td class="text-center">{{ row[0].fuel_date }}</td><td class="text-end">{{ '%.2f'|format((row[0].liters or 0) * (row[0].price or 0)) }}</td><td class="text-center"><button type="button" class="btn btn-sm btn-secondary me-1" data-bs-toggle="modal" data-bs-target="#editFuel{{ row[0].id }}" title="Редактировать"><img src="{{ url_for('static', filename='icons/edit.png') }}" alt="Редактировать" style="width: 16px; height: 16px;"></button><a class="btn btn-sm btn-danger" href="{{ url_for('delete_record', entity='fuel', record_id=row[0].id) }}" title="Удалить"><img src="{{ url_for('static', filename='icons/delete.png') }}" alt="Удалить" style="width: 16px; height: 16px;"></a></td>
+  {% elif title == 'Покупки запчастей' %}<td>{{ row[1].display_name }}</td><td><a class="link-offset-2 link-underline link-underline-opacity-0 text-light" href="/parts?edit={{ row[2].id }}">{{ row[2].display_name }}</a></td><td class="text-center">{{ row[0].purchase_date }}</td><td class="text-center">{{ row[0].quantity }}</td><td class="text-end">{{ '%.2f'|format(row[0].price) }}</td><td class="text-end">{{ '%.2f'|format(row[0].quantity * row[0].price) }}</td><td class="text-center">{% if row[0].service_history %}<a class="link-offset-2 link-underline link-underline-opacity-0 text-light" href="/service-history#history-{{ row[0].service_history.id }}">{{ row[0].service_history.display_name }}</a>{% else %}Не указано{% endif %}</td><td class="text-center"><button type="button" class="btn btn-sm btn-secondary me-1" data-bs-toggle="modal" data-bs-target="#editPurchase{{ row[0].id }}" title="Редактировать"><img src="{{ url_for('static', filename='icons/edit.png') }}" alt="Редактировать" style="width: 16px; height: 16px;"></button><a class="btn btn-sm btn-danger" href="{{ url_for('delete_record', entity='purchase', record_id=row[0].id) }}" title="Удалить"><img src="{{ url_for('static', filename='icons/delete.png') }}" alt="Удалить" style="width: 16px; height: 16px;"></a></td>
+  {% else %}<td>{{ row[1].display_name }}</td><td class="text-center">{{ row[0].service_date }}</td><td class="text-center">{{ row[0].mileage }}</td><td class="text-center">{{ row[2].name if row[2] else '' }}</td><td>{% for link in row[0].task_links %}{{ link.service_task.abbr }}{% if not loop.last %}, {% endif %}{% endfor %}</td><td>{{ row[0].description or '' }}</td><td class="text-end">{{ row[0].amount }}</td><td class="text-center"><button type="button" class="btn btn-sm btn-secondary me-1" data-bs-toggle="modal" data-bs-target="#editHistory{{ row[0].id }}" title="Редактировать"><img src="{{ url_for('static', filename='icons/edit.png') }}" alt="Редактировать" style="width: 16px; height: 16px;"></button><a class="btn btn-sm btn-danger" href="{{ url_for('delete_record', entity='service-history', record_id=row[0].id) }}" title="Удалить"><img src="{{ url_for('static', filename='icons/delete.png') }}" alt="Удалить" style="width: 16px; height: 16px;"></a></td>{% endif %}
+</tr>
+
+<!-- Modal window buy-->
+{% if title == 'Покупки запчастей' %}
+<div class="modal fade" id="editPurchase{{ row[0].id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('edit_purchase', purchase_id=row[0].id) }}">
+        <div class="modal-header"><h5 class="modal-title">Редактирование покупки</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button></div>
+        <div class="modal-body">
+          <label class="form-label">Автомобиль</label>
+          <select name="car_id" class="form-select mb-3" required>{% for car in cars %}<option value="{{ car.id }}" {% if row[0].car_id == car.id %}selected{% endif %}>{{ car.display_name }}</option>{% endfor %}</select>
+          <label class="form-label">Запчасть</label>
+          <select name="part_id" class="form-select mb-3" required>{% for part in parts %}<option value="{{ part.id }}" {% if row[0].part_id == part.id %}selected{% endif %}>{{ part.display_name }}</option>{% endfor %}</select>
+          <label class="form-label">Использование в ТО</label>
+          <select name="service_history_id" class="form-select mb-3"><option value="">Не выбрано</option>{% for history in service_histories %}<option value="{{ history.id }}" {% if row[0].service_history_id == history.id %}selected{% endif %}>{{ history.display_name }}</option>{% endfor %}</select>
+          <label class="form-label">Дата</label><input name="purchase_date" type="date" class="form-control mb-3" value="{{ row[0].purchase_date }}" required>
+          <label class="form-label">Количество</label><input name="quantity" type="number" step="0.01" class="form-control mb-3 purchase-quantity" value="{{ row[0].quantity }}" required>
+          <label class="form-label">Цена</label><input name="price" type="number" step="0.01" class="form-control purchase-price" value="{{ row[0].price }}" required>
+          <label class="form-label mt-3">Сумма</label><input name="total" type="text" class="form-control purchase-total" value="{{ '%.2f'|format(row[0].quantity * row[0].price) }}" readonly>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger btn-sm me-1" data-bs-dismiss="modal">Отмена</button>
+          <button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+<!-- Modal window edit-->
+{% if title == 'Расходы' %}
+<div class="modal fade" id="editExpense{{ row[0].id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('edit_expense', expense_id=row[0].id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title">Редактирование расхода</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label">Автомобиль</label>
+          <select name="car_id" class="form-select mb-3" required>
+            {% for car in cars %}
+              <option value="{{ car.id }}" {% if row[0].car_id == car.id %}selected{% endif %}>{{ car.display_name }}</option>
+            {% endfor %}
+          </select>
+          <label class="form-label">Тип расхода</label>
+          <select name="expense_type_id" class="form-select mb-3" required>
+            {% for item in expense_types %}
+              <option value="{{ item.id }}" {% if row[0].expense_type_id == item.id %}selected{% endif %}>{{ item.name }}</option>
+            {% endfor %}
+          </select>
+          <label class="form-label">Сумма</label>
+          <input name="amount" type="number" step="0.01" class="form-control mb-3" value="{{ row[0].amount }}" required>
+          <label class="form-label">Дата</label>
+          <input name="expense_date" type="date" class="form-control mb-3" value="{{ row[0].expense_date }}" required>
+          <label class="form-label">Комментарий</label>
+          <input name="comment" class="form-control" value="{{ row[0].comment or '' }}">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger btn-sm me-1" data-bs-dismiss="modal">Отмена</button>
+          <button class="btn btn-primary btn-sm">Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% elif title == 'Топливо' %}
+<div class="modal fade" id="editFuel{{ row[0].id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('edit_fuel', fuel_id=row[0].id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title">Редактирование заправки</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label">Автомобиль</label>
+          <select name="car_id" class="form-select mb-3" required>
+            {% for car in cars %}
+              <option value="{{ car.id }}" {% if row[0].car_id == car.id %}selected{% endif %}>{{ car.display_name }}</option>
+            {% endfor %}</select>
+          <label class="form-label">Литры</label>
+          <input name="liters" type="number" step="0.01" class="form-control mb-3 fuel-liters" value="{{ row[0].liters }}" required>
+          <label class="form-label">Цена</label>
+          <input name="price" type="number" step="0.01" class="form-control mb-3 fuel-price" value="{{ row[0].price }}" required>
+          <label class="form-label">Сумма</label>
+          <input type="text" class="form-control mb-3 fuel-total" value="{{ '%.2f'|format((row[0].liters or 0) * (row[0].price or 0)) }}" readonly>
+          <label class="form-label">Дата</label>
+          <input name="fuel_date" type="date" class="form-control" value="{{ row[0].fuel_date }}" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger btn-sm me-1" data-bs-dismiss="modal">Отмена</button>
+          <button class="btn btn-primary btn-sm">Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% elif title == 'История ТО' %}
+<div class="modal fade" id="editHistory{{ row[0].id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('edit_service_history', history_id=row[0].id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title">Редактирование ТО</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label">Автомобиль</label>
+          <select name="car_id" class="form-select mb-3" required>
+            {% for car in cars %}
+            <option value="{{ car.id }}" {% if row[0].car_id == car.id %}selected{% endif %}>{{ car.display_name }}</option>
+            {% endfor %}
+          </select>
+          <label class="form-label">Дата</label>
+          <input name="service_date" type="date" class="form-control mb-3" value="{{ row[0].service_date }}" required>
+          <label class="form-label">Пробег</label>
+          <input name="mileage" type="number" class="form-control mb-3" value="{{ row[0].mileage }}" required>
+          <label class="form-label">СТО</label>
+          <select name="sto_id" class="form-select mb-3">
+            <option value="">СТО</option>
+            {% for service in services %}
+            <option value="{{ service.id }}" {% if row[0].sto_id == service.id %}selected{% endif %}>{{ service.name }}</option>
+            {% endfor %}
+          </select>
+          <label class="form-label">Стандартные работы</label>
+          {% for task in tasks %}
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="service_task_ids" value="{{ task.id }}" {% if task.id in row[0].task_links|map(attribute='service_task_id')|list %}checked{% endif %}><label class="form-check-label">{{ task.abbr }} - {{ task.name }}</label></div>
+          {% endfor %}
+          <label class="form-label mt-3">Описание</label>
+          <textarea name="description" class="form-control mb-3" rows="4">{{ row[0].description or '' }}</textarea>
+          <label class="form-label">Сумма</label>
+          <input name="amount" type="number" step="0.01" class="form-control" value="{{ row[0].amount }}" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger btn-sm me-1" data-bs-dismiss="modal">Отмена</button>
+          <button class="btn btn-primary btn-sm">Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endfor %}
+</tbody>
+<!-- Main Table FOOTER-->
+{% if title == 'Покупки запчастей' %}
+<tfoot>
+  <tr id="purchaseTotal" class="table-primary fw-bold">
+    <td colspan="5" class="text-end">Итого:</td>
+    <td>{{ '%.2f'|format(total) }}</td>
+    <td colspan="2"></td>
+  </tr>
+</tfoot>
+{% elif title == 'Топливо' %}
+<tfoot>
+  <tr id="fuelTotal" class="table-primary fw-bold">
+    <td colspan="4" class="text-end">Итого:</td>
+    <td>{{ '%.2f'|format(total) }}</td>
+    <td></td>
+  </tr>
+</tfoot>
+{% elif title == 'История ТО' %}
+<tfoot>
+  <tr id="historyTotal" class="table-primary fw-bold">
+    <td colspan="6" class="text-end">Итого:</td>
+    <td>{{ '%.2f'|format(total) }}</td>
+    <td></td>
+  </tr>
+</tfoot>
+{% endif %}
+</table></div>
+<!-- Additional Table-->
+{% if title == 'История ТО' %}
+<section id="historyParts" class="mt-4">
+  <h2 class="h4">Запчасти, назначенные к выбранному ТО</h2>
+  <div class="table-responsive">
+    <table class="table table-sm table table-striped table-hover">
+      <thead>
+        <tr>
+          <th style="width: 60%;" class="text-center">Запчасть</th>
+          <th style="width: 10%;" class="text-center">Количество</th>
+          <th style="width: 15%;" class="text-center">Цена</th>
+          <th style="width: 15%;" class="text-center">Сумма</th>
+        </tr>
+      </thead>
+      <tbody id="historyPartsBody">
+        <tr>
+          <td colspan="4">Выберите строку ТО</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr class="table-primary fw-bold">
+          <td colspan="3" class="text-end">Итого:</td>
+          <td id="historyPartsTotal">0.00</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</section>
+<section id="historySummary" class="mt-4">
+  <h2 class="h4">Итоги выбранного ТО</h2>
+  <div class="table-responsive">
+  <table class="table table-bordered table-sm">
+    <thead>
+      <tr>
+        <th class="text-center">Стоимость работ</th>
+        <th class="text-center">Стоимость запчастей</th>
+        <th class="text-center">ИТОГО</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td id="historyWorkTotal" class="text-center fs-2">0.00</td>
+        <td id="historyPartsSummaryTotal" class="text-center fs-2">0.00</td>
+        <td id="historyGrandTotal" class="text-center fs-2 fw-bold">0.00</td>
+      </tr>
+    </tbody>
+    </table>
+  </div>
+</section>
+<script>
+async function selectServiceHistory(historyId) {
+  const body = document.getElementById('historyPartsBody');
+  const total = document.getElementById('historyPartsTotal');
+  const workTotal = document.getElementById('historyWorkTotal');
+  const partsSummaryTotal = document.getElementById('historyPartsSummaryTotal');
+  const grandTotal = document.getElementById('historyGrandTotal');
+  const selectedRow = document.getElementById('history-' + historyId);
+  const workAmount = selectedRow ? Number(selectedRow.dataset.amount || 0) : 0;
+
+  document.querySelectorAll('#recordsTable tbody tr[id^="history-"]').forEach(function (row) {
+    row.classList.remove('table-primary');
+  });
+  if (selectedRow) {
+    selectedRow.classList.add('table-primary');
+  }
+
+  workTotal.textContent = workAmount.toFixed(2);
+  partsSummaryTotal.textContent = '0.00';
+  grandTotal.textContent = workAmount.toFixed(2);
+  body.innerHTML = '<tr><td colspan="4">Загрузка...</td></tr>';
+  total.textContent = '0.00';
+  const response = await fetch('/api/service-history/' + historyId + '/parts');
+  if (!response.ok) { body.innerHTML = '<tr><td colspan="4">Не удалось загрузить запчасти</td></tr>'; return; }
+  const data = await response.json();
+  if (!data.parts.length) { body.innerHTML = '<tr><td colspan="4">К этому ТО запчасти не назначены</td></tr>'; return; }
+  let totalAmount = 0;
+  body.innerHTML = data.parts.map(function (part) {
+    totalAmount += Number(part.amount) || 0;
+    return '<tr><td>' + part.name + '</td><td class="text-center">' + part.quantity + '</td><td class="text-end">' + Number(part.price).toFixed(2) + '</td><td class="text-end">' + Number(part.amount).toFixed(2) + '</td></tr>';
+  }).join('');
+  total.textContent = totalAmount.toFixed(2);
+  partsSummaryTotal.textContent = totalAmount.toFixed(2);
+  grandTotal.textContent = (workAmount + totalAmount).toFixed(2);
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  const hash = window.location.hash;
+  if (hash && hash.startsWith('#history-')) {
+    const historyId = hash.replace('#history-', '');
+    const targetRow = document.getElementById('history-' + historyId);
+    if (targetRow) {
+      selectServiceHistory(historyId);
+      targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+});
+</script>
+{% endif %}
+
+{% if title == 'Покупки запчастей' %}
+<script>
+document.querySelectorAll('.modal').forEach(function (modal) {
+  const quantity = modal.querySelector('.purchase-quantity');
+  const price = modal.querySelector('.purchase-price');
+  const total = modal.querySelector('.purchase-total');
+  function recalculate() {
+    total.value = ((parseFloat(quantity.value) || 0) * (parseFloat(price.value) || 0)).toFixed(2);
+  }
+  quantity.addEventListener('input', recalculate);
+  price.addEventListener('input', recalculate);
+});
+</script>
+{% endif %}
+{% if title == 'Топливо' %}
+<script>
+document.querySelectorAll('.modal').forEach(function (modal) {
+  const liters = modal.querySelector('.fuel-liters');
+  const price = modal.querySelector('.fuel-price');
+  const total = modal.querySelector('.fuel-total');
+  if (!liters || !price || !total) return;
+  function recalculateFuel() {
+    total.value = ((parseFloat(liters.value) || 0) * (parseFloat(price.value) || 0)).toFixed(2);
+  }
+  liters.addEventListener('input', recalculateFuel);
+  price.addEventListener('input', recalculateFuel);
+});
+</script>
+{% endif %}
+<script>
+const tableFilter = document.getElementById('tableFilter');
+const recordsTable = document.getElementById('recordsTable');
+const purchaseServiceFilter = document.getElementById('purchaseServiceFilter');
+const serviceFilter = document.getElementById('serviceFilter');
+const taskFilter = document.getElementById('taskFilter');
+if (tableFilter && recordsTable) {
+  function filterRecords() {
+    const text = tableFilter.value.trim().toLowerCase();
+    const serviceHistory = purchaseServiceFilter ? purchaseServiceFilter.value : '';
+    const service = serviceFilter ? serviceFilter.value : '';
+    const task = taskFilter ? taskFilter.value : '';
+    let visibleTotal = 0;
+    recordsTable.querySelectorAll('tbody tr').forEach(function (row) {
+      if (row.id === 'purchaseTotal' || row.id === 'fuelTotal' || row.id === 'historyTotal') {
+        row.hidden = false;
+        return;
+      }
+      const matchesText = row.textContent.toLowerCase().includes(text);
+      const matchesService = !purchaseServiceFilter || !serviceHistory ||
+        (serviceHistory === 'none' && !row.dataset.serviceHistory) ||
+        row.dataset.serviceHistory === serviceHistory;
+      const matchesSto = !serviceFilter || !service || row.dataset.service === service;
+      const matchesTask = !taskFilter || !task || row.dataset.tasks.split(',').includes(task);
+      const visible = matchesText && matchesService && matchesSto && matchesTask;
+      row.hidden = !visible;
+      if (visible && row.dataset.amount) visibleTotal += Number(row.dataset.amount);
+    });
+    const totalCell = document.querySelector('#purchaseTotal td:nth-child(6), #fuelTotal td:nth-child(5), #historyTotal td:nth-child(7)');
+    if (totalCell) totalCell.textContent = visibleTotal.toFixed(2);
+    const historyTotal = document.getElementById('historyTotal');
+    if (historyTotal) {
+      historyTotal.hidden = false;
+      historyTotal.style.display = 'table-row';
+    }
+  }
+  tableFilter.addEventListener('input', filterRecords);
+  if (purchaseServiceFilter) purchaseServiceFilter.addEventListener('change', filterRecords);
+  if (serviceFilter) serviceFilter.addEventListener('change', filterRecords);
+  if (taskFilter) taskFilter.addEventListener('change', filterRecords);
+}
+</script>
+{% endblock %}

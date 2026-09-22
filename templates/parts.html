@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>Каталог запчастей</h1>
+
+  <div class="mb-3">
+    <button type="button" class="btn btn-primary btn-sm me-4" data-bs-toggle="modal" data-bs-target="#addPartModal" title="Добавить запчасть"><img src="{{ url_for('static', filename='icons/add.png') }}" alt="Добавить" style="width: 16px; height: 16px;"> Добавить</button>
+    <a class="btn btn-primary btn-sm me-1" href="{{ url_for('export_table', table_name='parts') }}" title="Экспорт в CSV">
+      <img src="{{ url_for('static', filename='icons/export.png') }}" alt="Экспорт" style="width: 16px; height: 16px;"> Экспорт
+    </a>
+    <a class="btn btn-secondary btn-sm me-1" href="{{ url_for('export_template', table_name='parts') }}" title="Скачать шаблон">
+      <img src="{{ url_for('static', filename='icons/export.png') }}" alt="Шаблон" style="width: 16px; height: 16px;"> Шаблон
+    </a>
+    <button type="button" class="btn btn-success btn-sm me-1" data-bs-toggle="modal" data-bs-target="#importModal" title="Импорт из CSV">
+      <img src="{{ url_for('static', filename='icons/import.png') }}" alt="Импорт" style="width: 16px; height: 16px;"> Импорт
+    </button>
+  </div>
+
+  
+  <div class="modal fade" id="addPartModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><div class="modal-content">
+    <form method="post" action="/parts/add">
+      {{ form.hidden_tag() }}
+      <div class="modal-header"><h5 class="modal-title">Добавить запчасть</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button></div>
+      <div class="modal-body">
+        <label class="form-label">Наименование</label>{{ form.name(class='form-control mb-3', placeholder='Название запчасти') }}
+        <label class="form-label">Производитель</label>{{ form.manufacturer_id(class='form-select mb-3') }}
+        <label class="form-label">Тип</label>{{ form.type_id(class='form-select mb-3') }}
+        <label class="form-label">Система</label>{{ form.system_id(class='form-select mb-3') }}
+        <label class="form-label">Артикул</label>{{ form.article(class='form-control mb-3', placeholder='Артикул') }}
+        <label class="form-label">Оригинальный артикул</label>{{ form.original_article(class='form-control', placeholder='Оригинальный артикул') }}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger btn-sm" data-bs-dismiss="modal">Отмена</button>
+        <button class="btn btn-primary btn-sm" title="Добавить"><img src="{{ url_for('static', filename='icons/add.png') }}" alt="Добавить" style="width: 16px; height: 16px;"> Добавить</button>
+      </div>
+    </form>
+  </div></div></div>
+
+  <div class="row g-2 mb-3">
+    <div class="col-md-4"><input id="filterArticle" type="search" class="form-control" placeholder="Артикул"></div>
+    <div class="col-md-2"><input id="filterPartName" type="search" class="form-control" placeholder="Наименование"></div>
+    <div class="col-md-2"><select id="filterManufacturer" class="form-select"><option value="">Производитель</option>{% for m in manufacturers %}<option value="{{ m.id }}">{{ m.name }}</option>{% endfor %}</select></div>
+    <div class="col-md-2"><select id="filterPartType" class="form-select"><option value="">Тип</option>{% for t in part_types %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}</select></div>
+    <div class="col-md-2"><select id="filterSystem" class="form-select"><option value="">Система</option>{% for s in systems %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select></div>
+  </div>
+
+  <table id="partsTable" class="table table-striped table-hover">
+    <thead class="table-dark">
+      <tr>
+        <th style="width: 36%;" class="text-center">Название</th>
+        <th style="width: 10%;" class="text-center">Производитель</th>
+        <th style="width: 12%;" class="text-center">Тип</th>
+        <th style="width: 12%;" class="text-center">Система</th>
+        <th style="width: 10%;" class="text-center">Артикул</th>
+        <th style="width: 10%;" class="text-center">Ориг. арт</th>
+        <th style="width: 10%;"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in parts %}
+      <tr data-article="{{ p.article or '' }}" data-original-article="{{ p.original_article or '' }}" data-name="{{ p.name }}" data-manufacturer="{{ p.manufacturer_id or '' }}" data-type="{{ p.type_id or '' }}" data-system="{{ p.system_id or '' }}">
+        <td>{{ p.name }}</td>
+        <td class="text-center">{{ p.manufacturer_id and (manufacturers|selectattr('id','equalto',p.manufacturer_id)|first).name or '' }}</td>
+        <td class="text-center">{{ p.type_id and (part_types|selectattr('id','equalto',p.type_id)|first).name or '' }}</td>
+        <td class="text-center">{{ p.system_id and (systems|selectattr('id','equalto',p.system_id)|first).name or '' }}</td>
+        <td class="text-center">{{ p.article or '' }}</td>
+        <td class="text-center">{{ p.original_article or '' }}</td>
+        <td class="text-center">
+          <button type="button" class="btn btn-sm btn-success buy-part-button" data-part-id="{{ p.id }}" data-part-name="{{ p.display_name }}" data-bs-toggle="modal" data-bs-target="#buyPartModal" title="Купить"><img src="{{ url_for('static', filename='icons/buy.png') }}" alt="Купить" style="width: 16px; height: 16px;"></button>
+          <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editPart{{ p.id }}" title="Редактировать"><img src="{{ url_for('static', filename='icons/edit.png') }}" alt="Редактировать" style="width: 16px; height: 16px;"></button>
+          <a href="/parts/delete/{{ p.id }}" class="btn btn-sm btn-danger" title="Удалить"><img src="{{ url_for('static', filename='icons/delete.png') }}" alt="Удалить" style="width: 16px; height: 16px;"></a>
+        </td>
+      </tr>
+      <div class="modal fade" id="editPart{{ p.id }}" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><div class="modal-content"><form method="post" action="/parts/edit/{{ p.id }}"><div class="modal-header"><h5 class="modal-title">Редактирование запчасти</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><label class="form-label">Название</label><input name="name" class="form-control mb-3" value="{{ p.name }}" required><label class="form-label">Производитель</label><select name="manufacturer_id" class="form-select mb-3"><option value="0">---</option>{% for m in manufacturers %}<option value="{{ m.id }}" {% if p.manufacturer_id == m.id %}selected{% endif %}>{{ m.name }}</option>{% endfor %}</select><label class="form-label">Тип</label><select name="type_id" class="form-select mb-3"><option value="0">---</option>{% for t in part_types %}<option value="{{ t.id }}" {% if p.type_id == t.id %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select><label class="form-label">Система</label><select name="system_id" class="form-select mb-3"><option value="0">---</option>{% for s in systems %}<option value="{{ s.id }}" {% if p.system_id == s.id %}selected{% endif %}>{{ s.name }}</option>{% endfor %}</select><label class="form-label">Артикул</label><input name="article" class="form-control mb-3" value="{{ p.article or '' }}"><label class="form-label">Оригинальный артикул</label><input name="original_article" class="form-control" value="{{ p.original_article or '' }}"></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button><button class="btn btn-primary">Сохранить</button></div></form></div></div></div>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form method="post" action="{{ url_for('import_table', table_name='parts') }}" enctype="multipart/form-data">
+          <div class="modal-header">
+            <h5 class="modal-title">Импорт из CSV</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <label class="form-label">Выберите CSV файл</label>
+            <input type="file" name="file" class="form-control" accept=".csv" required>
+            <small class="form-text text-muted">Формат: UTF-8, разделитель ";"</small>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+            <button type="submit" class="btn btn-primary">Импортировать</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="buyPartModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><div class="modal-content">
+    <form method="post" action="{{ url_for('purchases_index') }}">
+      <div class="modal-header"><h5 class="modal-title">Купить запчасть</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button></div>
+      <div class="modal-body">
+        <label class="form-label">Запчасть</label><select id="buyPartSelect" name="part_id" class="form-select mb-3" required>{% for part in parts %}<option value="{{ part.id }}">{{ part.display_name }}</option>{% endfor %}</select>
+        <label class="form-label">Автомобиль</label><select name="car_id" class="form-select mb-3" required><option value="">Автомобиль</option>{% for car in cars %}<option value="{{ car.id }}" {% if selected_car_id == car.id %}selected{% endif %}>{{ car.display_name }}</option>{% endfor %}</select>
+        <label class="form-label">Дата покупки</label><input name="purchase_date" type="date" class="form-control mb-3" required>
+        <label class="form-label">Количество</label><input id="buyQuantity" name="quantity" type="number" step="0.01" min="0" class="form-control mb-3" required>
+        <label class="form-label">Цена</label><input id="buyPrice" name="price" type="number" step="0.01" min="0" class="form-control mb-3" required>
+        <label class="form-label">Использование в ТО</label><select name="service_history_id" class="form-select"><option value="">Не выбрано</option>{% for history in service_histories %}<option value="{{ history.id }}">{{ history.display_name }}</option>{% endfor %}</select>
+        <label class="form-label">Сумма</label><input id="buyTotal" type="text" class="form-control" value="0.00" readonly>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger btn-sm me-1" data-bs-dismiss="modal">Отмена</button>
+        <button class="btn btn-primary btn-sm" title="Добавить в покупки"><img src="{{ url_for('static', filename='icons/add.png') }}" alt="Добавить" style="width: 16px; height: 16px;"> Купить</button>
+      </div>
+    </form>
+  </div></div></div>
+
+<script>
+{% if edit_part_id %}
+document.addEventListener('DOMContentLoaded', function () {
+  const editModal = document.getElementById('editPart{{ edit_part_id }}');
+  if (editModal) bootstrap.Modal.getOrCreateInstance(editModal).show();
+});
+{% endif %}
+
+document.querySelectorAll('.buy-part-button').forEach(function (button) {
+  button.addEventListener('click', function () {
+    document.getElementById('buyPartSelect').value = button.dataset.partId;
+  });
+});
+
+const buyQuantity = document.getElementById('buyQuantity');
+const buyPrice = document.getElementById('buyPrice');
+const buyTotal = document.getElementById('buyTotal');
+function recalculateBuyTotal() {
+  buyTotal.value = ((parseFloat(buyQuantity.value) || 0) * (parseFloat(buyPrice.value) || 0)).toFixed(2);
+}
+buyQuantity.addEventListener('input', recalculateBuyTotal);
+buyPrice.addEventListener('input', recalculateBuyTotal);
+
+const partFilterIds = ['filterArticle', 'filterPartName', 'filterManufacturer', 'filterPartType', 'filterSystem'];
+partFilterIds.forEach(function (id) {
+  document.getElementById(id).addEventListener('input', function () {
+    const article = document.getElementById('filterArticle').value.toLowerCase();
+    const name = document.getElementById('filterPartName').value.toLowerCase();
+    const manufacturer = document.getElementById('filterManufacturer').value;
+    const type = document.getElementById('filterPartType').value;
+    const system = document.getElementById('filterSystem').value;
+    document.querySelectorAll('#partsTable tbody tr').forEach(function (row) {
+      const matches = (row.dataset.article.toLowerCase().includes(article) ||
+        row.dataset.originalArticle.toLowerCase().includes(article)) &&
+        row.dataset.name.toLowerCase().includes(name) &&
+        (!manufacturer || row.dataset.manufacturer === manufacturer) &&
+        (!type || row.dataset.type === type) &&
+        (!system || row.dataset.system === system);
+      row.hidden = !matches;
+    });
+  });
+});
+</script>
+
+{% endblock %}

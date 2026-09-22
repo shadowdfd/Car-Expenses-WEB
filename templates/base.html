@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Car Expenses - Web</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+      :root {
+        --bs-body-bg: #0B0E14;
+        --bs-body-color: #F8FAFC;
+        --bs-border-color: #1E293B;
+        --bs-table-bg: #0F172A;
+        --bs-table-striped-bg: #1E293B;
+        --bs-table-hover-bg: #5B21B6;
+        --purple-500: #8B5CF6;
+        --purple-700: #5B21B6;
+      }
+
+      body {
+        background-color: var(--bs-body-bg);
+        color: var(--bs-body-color);
+        font-size: 0.875rem;
+      }
+
+      .navbar {
+        background-color: var(--purple-500) !important;
+      }
+
+      .navbar-brand,
+      .nav-link,
+      .navbar-nav .nav-link {
+        color: #FFFFFF !important;
+      }
+
+      .navbar-nav .nav-link:hover,
+      .navbar-nav .nav-link:focus {
+        color: #F8FAFC !important;
+      }
+
+      .dropdown-menu {
+        background-color: #1E293B;
+      }
+
+      .dropdown-item {
+        color: #F8FAFC;
+      }
+
+      .dropdown-item:hover,
+      .dropdown-item:focus {
+        background-color: #334155;
+        color: #FFFFFF;
+      }
+
+      .dropdown-divider {
+        border-color: #334155;
+      }
+
+      .table {
+        --bs-table-bg: var(--bs-table-bg);
+        --bs-table-striped-bg: var(--bs-table-striped-bg);
+        --bs-table-hover-bg: var(--bs-table-hover-bg);
+        --bs-table-color: #FFFFFF;
+        color: #FFFFFF;
+        border-color: var(--bs-border-color);
+      }
+
+      .table-hover tbody tr:hover {
+        background-color: #5B21B6 !important;
+      }
+
+      .table-hover tbody tr:hover td {
+        color: #FFFFFF !important;
+      }
+
+      .table > :not(caption) > * > * {
+        border-bottom-color: var(--bs-border-color);
+        color: #FFFFFF;
+      }
+
+      .table thead th {
+        color: #FFFFFF;
+        background-color: var(--purple-500);
+      }
+
+      .table tbody td {
+        color: #FFFFFF;
+      }
+
+      .table-primary {
+        background-color: #5B21B6 !important;
+        color: #FFFFFF !important;
+      }
+
+      .table-primary td {
+        background-color: #5B21B6 !important;
+        color: #FFFFFF !important;
+      }
+
+      .table-dark {
+        --bs-table-bg: #1E293B;
+        --bs-table-color: #FFFFFF;
+        color: #FFFFFF;
+      }
+
+      .table-dark thead th {
+        background-color: var(--purple-500);
+        color: #FFFFFF;
+      }
+
+      .form-control, .form-select {
+        background-color: #1E293B;
+        color: #F8FAFC;
+        border-color: #334155;
+        font-size: 0.875rem;
+      }
+
+      .form-control:focus, .form-select:focus {
+        background-color: #1E293B;
+        color: #F8FAFC;
+        border-color: var(--purple-500);
+        box-shadow: 0 0 0 0.25rem rgba(139, 92, 246, 0.25);
+      }
+
+      .form-control::placeholder {
+        color: #64748B;
+      }
+
+      .modal-content {
+        background-color: #0F172A;
+        color: #F8FAFC;
+        border-color: #334155;
+      }
+
+      .modal-header, .modal-footer {
+        border-color: #334155;
+      }
+
+      .btn-close {
+        filter: invert(1);
+      }
+
+      .alert {
+        background-color: #1E293B;
+        border-color: #334155;
+        color: #F8FAFC;
+      }
+
+      @media (max-width: 991.98px) {
+        .global-car-form .form-select { min-width: 0; width: 100%; }
+        .global-car-form .btn { width: 100%; }
+        .global-date-form { align-items: stretch; }
+        .global-date-form .date-input,
+        .global-date-form .date-submit { width: 100%; }
+        .global-date-form .date-submit { margin-top: .25rem; }
+        .date-presets { width: 100%; }
+        .date-presets .btn { flex: 1 1 22%; }
+      }
+      @media (min-width: 992px) {
+        .global-car-form .form-select { min-width: 190px; max-width: 300px; }
+        .global-date-form .date-input { width: 135px; }
+      }
+      .global-car-row { border-bottom: 1px solid var(--bs-border-color); padding: .65rem 0; margin-bottom: 0; }
+      .global-car-form { display: flex; align-items: center; gap: .5rem; flex-wrap: nowrap; }
+      .global-date-row { border-bottom: 1px solid var(--bs-border-color); padding: .65rem 0; margin-bottom: 1rem; }
+      .global-date-form { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; width: 100%; }
+      .global-date-form .date-input { width: 150px; }
+      .global-date-form .date-submit { flex: 0 0 auto; }
+      .date-presets { display: flex; gap: .25rem; flex-wrap: wrap; }
+      .navbar-brand { font-size: 1.25rem; }
+      .nav-link { font-size: 0.875rem; }
+      .dropdown-item { font-size: 0.875rem; }
+      .form-control-sm, .form-select-sm { font-size: 0.875rem; }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark mb-3">
+      <div class="container">
+        <a class="navbar-brand" href="/">Car Expenses</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavigation" aria-controls="mainNavigation" aria-expanded="false" aria-label="Открыть меню">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNavigation">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <li class="nav-item"><a class="nav-link" href="/service-history"><img src="{{ url_for('static', filename='icons/service.png') }}" alt="Шаблон" style="width: 16px; height: 16px;"> История ТО</a></li>
+            <li class="nav-item"><a class="nav-link" href="/expenses"><img src="{{ url_for('static', filename='icons/coins.png') }}" alt="Шаблон" style="width: 16px; height: 16px;"> Расходы</a></li>
+            <li class="nav-item"><a class="nav-link" href="/fuel"><img src="{{ url_for('static', filename='icons/fuel.png') }}" alt="Шаблон" style="width: 16px; height: 16px;"> Топливо</a></li>
+            <li class="nav-item"><a class="nav-link" href="/purchases"><img src="{{ url_for('static', filename='icons/buy.png') }}" alt="Шаблон" style="width: 16px; height: 16px;"> Покупки запчастей</a></li>
+            <li class="nav-item"><a class="nav-link" href="/parts"><img src="{{ url_for('static', filename='icons/engine.png') }}" alt="Шаблон" style="width: 16px; height: 16px;"> Запчасти</a></li>
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><img src="{{ url_for('static', filename='icons/file-pdf.png') }}" alt="Шаблон" style="width: 16px; height: 16px;"> Отчеты</a>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="/reports/oil-changes">Отчет о выполнении регламентных работ</a></li>
+                <li><a class="dropdown-item" href="/reports/general">Общий отчет по автомобилю</a></li>
+              </ul>
+            </li>
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><img src="{{ url_for('static', filename='icons/books.png') }}" alt="Шаблон" style="width: 16px; height: 16px;"> Справочники</a>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="/directories/cars">Автомобили</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="/directories/service-tasks">Стандартные работы</a></li>
+                <li><a class="dropdown-item" href="/directories/expense-types">Типы расходов</a></li>
+                <li><a class="dropdown-item" href="/directories/services">СТО</a></li>
+                <li><a class="dropdown-item" href="/directories/manufacturers">Производители</a></li>
+                <li><a class="dropdown-item" href="/directories/part-types">Типы запчастей</a></li>
+                <li><a class="dropdown-item" href="/directories/car-systems">Системы автомобиля</a></li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+    <div class="container global-car-row">
+      <form method="post" action="{{ url_for('set_global_car') }}" class="global-car-form d-flex align-items-center gap-2 flex-wrap">
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <select name="global_car_id" class="form-select form-select-sm" aria-label="Выбор автомобиля">
+          <option value="">Все автомобили</option>
+          {% for car in global_cars %}<option value="{{ car.id }}" {% if selected_car_id == car.id %}selected{% endif %}>{{ car.display_name }}</option>{% endfor %}
+        </select>
+        <div class="form-check text-nowrap"><input class="form-check-input" type="checkbox" name="filter_by_car" id="filterByCar" {% if filter_by_car %}checked{% endif %}><label class="form-check-label" for="filterByCar">Использовать фильтр</label></div>
+        <button class="btn btn-sm btn-primary" type="submit">Применить</button>
+      </form>
+    </div>
+    <div class="container global-date-row">
+      <form method="post" action="{{ url_for('set_global_car') }}" class="global-date-form">
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <span class="text-nowrap">Период:</span>
+        <input name="date_from" type="date" class="form-control form-control-sm date-input" value="{{ date_from }}" aria-label="Дата от">
+        <span>до</span>
+        <input name="date_to" type="date" class="form-control form-control-sm date-input" value="{{ date_to }}" aria-label="Дата до">
+        <input type="hidden" name="filter_by_date" value="0">
+        <div class="form-check text-nowrap"><input class="form-check-input" type="checkbox" name="filter_by_date" value="1" id="filterByDate" {% if filter_by_date %}checked{% endif %}><label class="form-check-label" for="filterByDate">Фильтр по датам</label></div>
+        <div class="date-presets">
+          <button class="btn btn-sm btn-secondary" type="submit" name="preset" value="1m">1 мес</button>
+          <button class="btn btn-sm btn-secondary" type="submit" name="preset" value="3m">3 мес</button>
+          <button class="btn btn-sm btn-secondary" type="submit" name="preset" value="6m">6 мес</button>
+          <button class="btn btn-sm btn-secondary" type="submit" name="preset" value="1y">1 год</button>
+        </div>
+        <button class="btn btn-sm btn-primary date-submit" type="submit">Применить даты</button>
+      </form>
+    </div>
+    <div class="container">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

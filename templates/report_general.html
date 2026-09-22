@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+  @media print {
+    nav, .global-date-row, .btn-print, .no-print, .navbar, .container > form { display: none !important; }
+    body { margin: 0; padding: 20px; }
+    .report-container { max-width: 100%; margin: 0; padding: 20px; box-sizing: border-box; }
+    .chart-container { width: 100% !important; max-width: 100% !important; padding: 10px; box-sizing: border-box; overflow: hidden; }
+    canvas { max-width: 100% !important; height: auto !important; }
+  }
+  .report-container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; color: #000000; }
+  .report-title { text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 30px; color: #000000; }
+  .car-info-table { width: 100%; margin-bottom: 30px; border-collapse: collapse; }
+  .car-info-table td { padding: 8px; border: 1px solid #dee2e6; color: #000000; }
+  .car-info-table td:first-child { font-weight: bold; width: 200px; background: #f8f9fa; }
+  .section-title { font-size: 18px; font-weight: bold; margin: 25px 0 15px; color: #000000; }
+  .report-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+  .report-table th, .report-table td { padding: 8px; border: 1px solid #dee2e6; color: #000000; }
+  .report-table th { background: #f8f9fa; font-weight: bold; }
+  .report-table td:last-child { text-align: right; }
+  .total-row { font-weight: bold; background: #5B21B6; color: #FFFFFF; }
+  .summary-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+  .summary-table td { padding: 10px; border: 1px solid #dee2e6; color: #000000; }
+  .summary-table td:first-child { font-weight: bold; width: 250px; background: #f8f9fa; }
+  .summary-table td:last-child { text-align: right; }
+  .chart-container { margin: 30px 0; padding: 20px; border: 1px solid #dee2e6; background: #f8f9fa; height: 500px; position: relative; }
+  canvas { display: block; }
+  .legend { margin-top: 15px; padding: 10px; background: white; border: 1px solid #dee2e6; }
+  .legend-item { display: inline-block; margin-right: 20px; }
+  .legend-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 5px; }
+</style>
+
+<div class="report-container">
+  <button class="btn btn-primary btn-print mb-3" onclick="window.print()">Печать / PDF</button>
+
+  <div class="report-title">ОБЩИЙ ОТЧЁТ по автомобилю на {{ generation_date }}</div>
+
+  {% if not car %}
+  <div class="alert alert-warning">Выберите автомобиль в глобальном фильтре</div>
+  {% else %}
+
+  <div class="mb-3 no-print">
+    <label class="form-label">Стандартная работа для графика:</label>
+    <select class="form-select" onchange="window.location.href='/reports/general?task_id=' + this.value">
+      <option value="">Выберите работу</option>
+      {% for task in tasks %}
+      <option value="{{ task.id }}" {% if selected_task_id == task.id %}selected{% endif %}>
+        {{ task.abbr }} - {{ task.name }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <table class="car-info-table">
+    <tr>
+      <td>Автомобиль</td>
+      <td>{{ car.manufacturer }} {{ car.name }} {{ car.plate_number }}</td>
+    </tr>
+    <tr>
+      <td>Год выпуска</td>
+      <td>{{ car.year }}</td>
+    </tr>
+    <tr>
+      <td>VIN</td>
+      <td>{{ car.vin or '' }}</td>
+    </tr>
+  </table>
+
+  <div class="section-title">Расходы по типам</div>
+  <table class="report-table">
+    <thead>
+      <tr>
+        <th>Тип расхода</th>
+        <th>Сумма</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in expenses_by_type %}
+      <tr>
+        <td>{{ item.name }}</td>
+        <td>{{ '{:,.2f}'.format(item.total).replace(',', ' ') }} ₽</td>
+      </tr>
+      {% endfor %}
+      <tr class="total-row">
+        <td>РАСХОДЫ</td>
+        <td>{{ '{:,.2f}'.format(expenses_total).replace(',', ' ') }} ₽</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="section-title">Расходы на сервисы по СТО</div>
+  <table class="report-table">
+    <thead>
+      <tr>
+        <th>СТО</th>
+        <th>Сумма</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in service_by_sto %}
+      <tr>
+        <td>{{ item.name }}</td>
+        <td>{{ '{:,.2f}'.format(item.total).replace(',', ' ') }} ₽</td>
+      </tr>
+      {% endfor %}
+      <tr class="total-row">
+        <td>ИСТОРИЯ ТО</td>
+        <td>{{ '{:,.2f}'.format(service_total).replace(',', ' ') }} ₽</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="section-title">Расходы на топливо</div>
+  <div style="padding: 10px; border: 1px solid #dee2e6; background: #e9ecef; font-weight: bold; text-align: right;">
+    {{ '{:,.2f}'.format(fuel_total).replace(',', ' ') }} ₽
+  </div>
+
+  <div class="section-title">Покупки запчастей по типам</div>
+  <table class="report-table">
+    <thead>
+      <tr>
+        <th>Тип запчасти</th>
+        <th>Сумма</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in parts_by_type %}
+      <tr>
+        <td>{{ item.name }}</td>
+        <td>{{ '{:,.2f}'.format(item.total).replace(',', ' ') }} ₽</td>
+      </tr>
+      {% endfor %}
+      <tr class="total-row">
+        <td>ПОКУПКИ ЗАПЧАСТЕЙ</td>
+        <td>{{ '{:,.2f}'.format(parts_total).replace(',', ' ') }} ₽</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="section-title">Итоги</div>
+  <table class="summary-table">
+    <tr>
+      <td>Общая сумма затрат:</td>
+      <td>{{ '{:,.2f}'.format(grand_total).replace(',', ' ') }} ₽</td>
+    </tr>
+    <tr>
+      <td>Эксплуатация:</td>
+      <td>{{ operation_period }}</td>
+    </tr>
+    <tr>
+      <td>Дни владения:</td>
+      <td>{{ ownership_days }}</td>
+    </tr>
+    <tr>
+      <td>Стоимость содержания в день:</td>
+      <td>{{ '{:,.2f}'.format(cost_per_day).replace(',', ' ') }} ₽</td>
+    </tr>
+    <tr>
+      <td>Последний пробег:</td>
+      <td>{{ '{:,.0f}'.format(last_mileage).replace(',', ' ') }} км</td>
+    </tr>
+    <tr>
+      <td>Стоимость 1 км пробега:</td>
+      <td>{{ '{:,.2f}'.format(cost_per_km).replace(',', ' ') }} ₽</td>
+    </tr>
+  </table>
+
+  <div class="section-title">График фиксации пробега</div>
+  <div class="chart-container">
+    <canvas id="mileageChart"></canvas>
+    <div class="legend">
+      <div class="legend-item">
+        <span class="legend-dot" style="background: #0F172A;"></span>
+        <span>Фиксация пробега</span>
+      </div>
+      {% if selected_task %}
+      <div class="legend-item">
+        <span class="legend-dot" style="background: #F97316;"></span>
+        <span>{{ selected_task.name }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script>
+{% if car and mileage_data %}
+const ctx = document.getElementById('mileageChart');
+new Chart(ctx, {
+  type: 'scatter',
+  data: {
+    datasets: [{
+      label: 'Фиксация пробега',
+      data: {{ mileage_data | tojson }},
+      backgroundColor: '#0F172A',
+      borderColor: '#0F172A',
+      pointRadius: 5,
+      showLine: true
+    }
+    {% if task_change_data %}
+    , {
+      label: '{{ selected_task.name if selected_task else "Работа" }}',
+      data: {{ task_change_data | tojson }},
+      backgroundColor: '#F97316',
+      borderColor: '#F97316',
+      pointRadius: 7
+    }
+    {% endif %}
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'nearest',
+      intersect: false
+    },
+    scales: {
+      x: {
+        type: 'time',
+        time: {
+          unit: 'month',
+          displayFormats: { month: 'MM.yyyy' }
+        },
+        title: { display: true, text: 'Время' }
+      },
+      y: {
+        title: { display: true, text: 'Пробег (км)' },
+        ticks: {
+          callback: function(value) {
+            return value.toLocaleString('ru-RU');
+          }
+        }
+      }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            return 'Пробег: ' + context.parsed.y.toLocaleString('ru-RU') + ' км';
+          }
+        }
+      }
+    }
+  }
+});
+{% endif %}
+</script>
+{% endblock %}

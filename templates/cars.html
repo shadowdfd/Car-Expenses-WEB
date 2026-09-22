@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>Автомобили</h1>
+
+  <form method="post" action="/cars/add" class="row g-3 mb-3">
+    <div class="col-md-3">
+      <input name="manufacturer" class="form-control" placeholder="Производитель">
+    </div>
+    <div class="col-md-3">
+      <input name="name" class="form-control" placeholder="Модель (уникальное имя)" required>
+    </div>
+    <div class="col-md-2">
+      <input name="year" class="form-control" placeholder="Год">
+    </div>
+    <div class="col-md-2">
+      <input name="vin" class="form-control" placeholder="VIN">
+    </div>
+    <div class="col-md-2">
+      <input name="plate" class="form-control" placeholder="Номер">
+    </div>
+    <div class="col-12">
+      <button class="btn btn-primary">Добавить автомобиль</button>
+    </div>
+  </form>
+
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Производитель</th>
+        <th>Модель</th>
+        <th>Год</th>
+        <th>VIN</th>
+        <th>Номер</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for car in cars %}
+      <tr>
+        <td>{{ car.manufacturer or '' }}</td>
+        <td>{{ car.name }}</td>
+        <td>{{ car.year or '' }}</td>
+        <td>{{ car.vin or '' }}</td>
+        <td>{{ car.plate_number or '' }}</td>
+        <td>
+          <a href="/cars/edit/{{ car.id }}" class="btn btn-sm btn-secondary me-1">Редактировать</a>
+          <a href="/cars/delete/{{ car.id }}" class="btn btn-sm btn-danger">Удалить</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+{% endblock %}

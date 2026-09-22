@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+  @media print {
+    nav, .global-date-row, .btn-print, .no-print, .navbar, .container > form { display: none !important; }
+    body { margin: 0; padding: 20px; }
+    .report-container { max-width: 100%; margin: 0; padding: 20px; }
+  }
+  .report-container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; color: #000000; }
+  .report-title { text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 30px; color: #000000; }
+  .car-info-table { width: 100%; margin-bottom: 30px; border-collapse: collapse; }
+  .car-info-table td { padding: 8px; border: 1px solid #dee2e6; color: #000000; }
+  .car-info-table td:first-child { font-weight: bold; width: 200px; background: #f8f9fa; }
+  .report-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  .report-table th, .report-table td { padding: 10px; border: 1px solid #dee2e6; text-align: left; color: #000000; }
+  .report-table th { background: #f8f9fa; font-weight: bold; }
+  .report-table td:first-child { text-align: center; width: 60px; }
+  .report-table td:nth-child(2) { width: 120px; }
+  .report-table td:nth-child(3), .report-table td:nth-child(4) { text-align: right; width: 120px; }
+</style>
+
+<div class="report-container">
+  <button class="btn btn-primary btn-print mb-3" onclick="window.print()">Печать / PDF</button>
+
+  <div class="report-title">ОТЧЕТ О ВЫПОЛНЕННЫХ РАБОТАХ</div>
+
+  {% if not car %}
+  <div class="alert alert-warning">Выберите автомобиль в глобальном фильтре</div>
+  {% else %}
+
+  <form method="get" class="mb-4 no-print">
+    <div class="row">
+      <div class="col-md-6">
+        <label class="form-label">Стандартная работа</label>
+        <select name="task_id" class="form-select" onchange="this.form.submit()">
+          <option value="">-- Выберите работу --</option>
+          {% for task in tasks %}
+          <option value="{{ task.id }}" {% if selected_task_id == task.id %}selected{% endif %}>
+            {{ task.abbr }} - {{ task.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </form>
+
+  {% if selected_task %}
+  <h5 class="mb-3">Работа: {{ selected_task.abbr }} - {{ selected_task.name }}</h5>
+  {% endif %}
+
+  <table class="car-info-table">
+    <tr>
+      <td>Автомобиль</td>
+      <td>{{ car.manufacturer }} {{ car.name }} {{ car.plate_number }}</td>
+    </tr>
+    <tr>
+      <td>Год выпуска</td>
+      <td>{{ car.year }}</td>
+    </tr>
+    <tr>
+      <td>VIN</td>
+      <td>{{ car.vin or '' }}</td>
+    </tr>
+  </table>
+
+  <table class="report-table">
+    <thead>
+      <tr>
+        <th>№</th>
+        <th>Дата</th>
+        <th>Пробег (км)</th>
+        <th>Интервал (км)</th>
+        <th>СТО</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for record in records %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ record.service_date.strftime('%d.%m.%Y') if record.service_date else '' }}</td>
+        <td>{{ '{:,.0f}'.format(record.mileage).replace(',', ' ') if record.mileage else '' }}</td>
+        <td>{{ '{:,.0f}'.format(record.interval).replace(',', ' ') if record.interval else '' }}</td>
+        <td>{{ record.service.name if record.service else '' }}</td>
+      </tr>
+      {% endfor %}
+      {% if not records %}
+      <tr>
+        <td colspan="5" style="text-align: center; color: #6c757d;">Нет данных</td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  {% endif %}
+</div>
+{% endblock %}
